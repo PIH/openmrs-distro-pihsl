@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.pih.openmrs.distro</groupId>
+    <artifactId>pihsl</artifactId>
+    <version>1.0.0-SNAPSHOT</version>  <!-- Should this mirror the config version?  If so, that might argue for having one be a submodule of the other -->
+    <packaging>jar</packaging>
+
+    <name>PIHSL EMR Distribution</name>
+    <description>Distro project for PIH Sierra Leone EMR</description>
+    <url>https://github.com/PIH/openmrs-distro-pihsl</url>
+
+    <properties>
+        <contentGroup>org.pih.openmrs</contentGroup>
+        <contentArtifact>pihsl-content</contentArtifact>
+        <contentVersion>1.55.0-SNAPSHOT</contentVersion>
+        <contentType>zip</contentType>
+        <frontendGroup>org.pih.openmrs</frontendGroup>
+        <frontendArtifact>openmrs-frontend-pihemr</frontendArtifact>
+        <frontendVersion>1.35.0-SNAPSHOT</frontendVersion>
+        <frontendType>zip</frontendType>
+        <parentGroup>org.openmrs.distro</parentGroup>
+        <parentArtifact>pihemr</parentArtifact>
+        <parentVersion>2.2.0-SNAPSHOT</parentVersion>
+        <parentType>jar</parentType>
+        <sdkVersion>6.9.0-SNAPSHOT</sdkVersion>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <developers>
+        <developer>
+            <name>Partners In Health</name>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>Partners In Health</name>
+        <url>https://pih.org</url>
+    </organization>
+
+    <scm>
+        <connection>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</connection>
+        <developerConnection>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</developerConnection>
+        <url>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>openmrs-repo-modules-pih</id>
+            <name>Modules</name>
+            <url>https://openmrs.jfrog.io/artifactory/modules-pih/</url>
+        </repository>
+        <snapshotRepository>
+            <id>openmrs-repo-modules-pih</id>
+            <name>OpenMRS Snapshots</name>
+            <url>https://openmrs.jfrog.io/artifactory/modules-pih-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>${parentGroup}</groupId>
+            <artifactId>${parentArtifact}</artifactId>
+            <version>${parentVersion}</version>
+            <type>${parentType}</type>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${contentGroup}</groupId>
+            <artifactId>${contentArtifact}</artifactId>
+            <version>${contentVersion}</version>
+            <type>${contentType}</type>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>${frontendGroup}</groupId>
+            <artifactId>${frontendArtifact}</artifactId>
+            <version>${frontendVersion}</version>
+            <type>${frontendType}</type>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.openmrs.maven.plugins</groupId>
+                    <artifactId>openmrs-sdk-maven-plugin</artifactId>
+                    <version>${sdkVersion}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>2.16.0</version>
+                    <configuration>
+                        <generateBackupPoms>false</generateBackupPoms>
+                        <excludeProperties>sdkVersion</excludeProperties>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <!-- Add the openmrs-distro.properties file into the artifact jar and apply variable replacements -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <propertiesEncoding>UTF-8</propertiesEncoding>
+                    <resources>
+                        <resource>
+                            <directory>${basedir}</directory>
+                            <filtering>true</filtering>
+                            <includes>
+                                <include>openmrs-distro.properties</include>
+                            </includes>
+                        </resource>
+                    </resources>
+                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                </configuration>
+            </plugin>
+
+            <!-- Use the SDK to retrieve all artifacts defined in openmrs-distro.properties -->
+            <plugin>
+                <groupId>org.openmrs.maven.plugins</groupId>
+                <artifactId>openmrs-sdk-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>build-distro</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>build-distro</goal>
+                        </goals>
+                        <configuration>
+                            <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
+                            <dir>${project.build.directory}/distro</dir>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
+                    <waitUntil>published</waitUntil>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>setup</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openmrs.maven.plugins</groupId>
+                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>install-to-sdk</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>setup</goal>
+                                </goals>
+                                <configuration>
+                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openmrs.maven.plugins</groupId>
+                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>deploy-to-sdk</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>deploy</goal>
+                                </goals>
+                                <configuration>
+                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>assemble</id>
+            <build>
+                <plugins>
+                    <!-- Assemble artifacts into a zip artifact -->
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>${basedir}/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <repositories>
+        <repository>
+            <id>openmrs-repo</id>
+            <name>OpenMRS Nexus Repository</name>
+            <url>https://openmrs.jfrog.io/artifactory/public</url>
+        </repository>
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>mks-repo</id>
+            <name>Mekom Solutions Maven repository</name>
+            <url>https://nexus.mekomsolutions.net/repository/maven-public</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>openmrs-repo</id>
+            <name>OpenMRS Nexus Repository</name>
+            <url>https://openmrs.jfrog.io/artifactory/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+</project>
