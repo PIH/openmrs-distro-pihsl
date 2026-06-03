@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.pih.openmrs.distro</groupId>
-    <artifactId>pihsl</artifactId>
+    <groupId>org.pih.openmrs</groupId>
+    <artifactId>pihsl-distro</artifactId>
     <version>1.0.0-SNAPSHOT</version>  <!-- Should this mirror the config version?  If so, that might argue for having one be a submodule of the other -->
     <packaging>jar</packaging>
 
@@ -29,35 +29,29 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <organization>
+        <name>Partners In Health</name>
+        <url>https://pih.org</url>
+    </organization>
+
     <developers>
         <developer>
             <name>Partners In Health</name>
         </developer>
     </developers>
 
-    <organization>
-        <name>Partners In Health</name>
-        <url>https://pih.org</url>
-    </organization>
+    <licenses>
+        <license>
+            <name>Mozilla Public License 2.0 with Healthcare Disclaimer</name>
+            <url>http://openmrs.org/license</url>
+        </license>
+    </licenses>
 
     <scm>
         <connection>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</connection>
         <developerConnection>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</developerConnection>
-        <url>scm:git:https://github.com/PIH/openmrs-distro-pihsl.git</url>
+        <url>https://github.com/PIH/openmrs-distro-pihsl</url>
     </scm>
-
-    <distributionManagement>
-        <repository>
-            <id>openmrs-repo-modules-pih</id>
-            <name>Modules</name>
-            <url>https://openmrs.jfrog.io/artifactory/modules-pih/</url>
-        </repository>
-        <snapshotRepository>
-            <id>openmrs-repo-modules-pih</id>
-            <name>OpenMRS Snapshots</name>
-            <url>https://openmrs.jfrog.io/artifactory/modules-pih-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <dependencies>
         <dependency>
@@ -100,6 +94,25 @@
                         <excludeProperties>sdkVersion</excludeProperties>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>0.7.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>3.2.7</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>3.2.0</version>
+                    <configuration>
+                        <tagNameFormat>@{project.version}</tagNameFormat>
+                        <projectVersionPolicyId>SemVerVersionPolicy</projectVersionPolicyId>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -137,6 +150,7 @@
                         <configuration>
                             <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
                             <dir>${project.build.directory}/distro</dir>
+                            <skipDockerCompose>true</skipDockerCompose>
                         </configuration>
                     </execution>
                 </executions>
@@ -144,7 +158,6 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.7.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
@@ -156,52 +169,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>setup</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.openmrs.maven.plugins</groupId>
-                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>install-to-sdk</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>setup</goal>
-                                </goals>
-                                <configuration>
-                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>deploy</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.openmrs.maven.plugins</groupId>
-                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>deploy-to-sdk</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>deploy</goal>
-                                </goals>
-                                <configuration>
-                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>assemble</id>
             <build>
@@ -223,6 +190,45 @@
                                 <goals>
                                     <goal>single</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>release</id>
+            <activation>
+                <property>
+                    <name>deployRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!--
+                    To deploy non-snapshot versions to Sonatype, signatures must be generated using gpg
+                    Note that gpg2 key must exist on Bamboo server and the key and passphrase can be
+                    passed on the command line.
+
+                    Instructions for creating a key:
+                    https://central.sonatype.org/pages/working-with-pgp-signatures.html
+
+                    Command to run: clean deploy -U -DdeployRelease -Dgpg.passphrase=*** -Dgpg.keyname=[email_address_associated_with_generated_key]
+                    -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <signer>bc</signer>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
