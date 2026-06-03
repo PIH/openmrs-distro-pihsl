@@ -2,7 +2,7 @@ name: Build and deploy
 
 on:
   push:
-    branches: [main, TASKS-547]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build-and-publish:
-    name: Build and Publish the Backend Image
+    name: Build and Publish
     if: github.repository_owner == 'PIH'
     runs-on: ubuntu-latest
     steps:

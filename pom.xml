@@ -131,6 +131,7 @@
                         <configuration>
                             <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
                             <dir>${project.build.directory}/distro</dir>
+                            <skipDockerCompose>true</skipDockerCompose>
                         </configuration>
                     </execution>
                 </executions>
@@ -150,52 +151,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>setup</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.openmrs.maven.plugins</groupId>
-                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>install-to-sdk</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>setup</goal>
-                                </goals>
-                                <configuration>
-                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>deploy</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.openmrs.maven.plugins</groupId>
-                        <artifactId>openmrs-sdk-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>deploy-to-sdk</id>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>deploy</goal>
-                                </goals>
-                                <configuration>
-                                    <distro>${project.build.directory}/classes/openmrs-distro.properties</distro>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>assemble</id>
             <build>

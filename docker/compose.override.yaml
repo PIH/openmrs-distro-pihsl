@@ -1,0 +1,20 @@
+services:
+  db:
+    extends:
+      file: compose.yaml
+      service: db
+    ports:
+      - ${MYSQL_PORT:-3306}:3306
+
+  openmrs:
+    extends:
+      file: compose.yaml
+      service: openmrs
+    environment:
+      DEBUG: "true"
+    ports:
+      - ${TOMCAT_DEBUG_PORT:-1044}:1044
+
+volumes:
+  db-data:
+  openmrs-data:
