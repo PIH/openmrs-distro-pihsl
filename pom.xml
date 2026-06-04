@@ -270,6 +270,17 @@
                 <enabled>true</enabled>
             </snapshots>
         </pluginRepository>
+        <pluginRepository>
+            <id>openmrs-snapshots</id>
+            <name>OpenMRS Snapshots Repository</name>
+            <url>https://openmrs.jfrog.io/artifactory/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
     </pluginRepositories>
 
 </project>
