@@ -82,13 +82,24 @@ case "$COMMAND" in
         for i in $(seq 1 120); do
             if docker logs "$OPENMRS_CONTAINER" 2>&1 | grep -q "Distribution startup complete"; then
                 kill $LOGS_PID 2>/dev/null || true
+                break
+            fi
+            sleep 30
+            if [ "$i" -eq 120 ]; then
+                kill $LOGS_PID 2>/dev/null || true
+                echo "Timed out waiting for OpenMRS to initialize after 60 minutes"
+                exit 1
+            fi
+        done
+        echo "Waiting for OpenMRS to be accessible..."
+        for i in $(seq 1 20); do
+            if curl -sf "http://localhost:${TOMCAT_HTTP_PORT:-8080}/openmrs" > /dev/null 2>&1; then
                 echo "OpenMRS is ready."
                 exit 0
             fi
-            sleep 30
+            sleep 15
         done
-        kill $LOGS_PID 2>/dev/null || true
-        echo "Timed out waiting for OpenMRS to initialize after 60 minutes"
+        echo "Timed out waiting for OpenMRS to become accessible"
         exit 1
         ;;
     build)
