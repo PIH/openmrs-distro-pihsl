@@ -74,6 +74,23 @@ case "$COMMAND" in
         if $FRESH; then $BASE_COMPOSE down; else $SEED_COMPOSE down; fi
         start_stack
         ;;
+    wait)
+        OPENMRS_CONTAINER=$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q openmrs)
+        echo "Waiting for OpenMRS to initialize (up to 60 minutes)..."
+        docker logs -f "$OPENMRS_CONTAINER" 2>&1 &
+        LOGS_PID=$!
+        for i in $(seq 1 120); do
+            if docker logs "$OPENMRS_CONTAINER" 2>&1 | grep -q "Distribution startup complete"; then
+                kill $LOGS_PID 2>/dev/null || true
+                echo "OpenMRS is ready."
+                exit 0
+            fi
+            sleep 30
+        done
+        kill $LOGS_PID 2>/dev/null || true
+        echo "Timed out waiting for OpenMRS to initialize after 60 minutes"
+        exit 1
+        ;;
     build)
         cd "$SCRIPT_DIR" && mvn clean package -U
         $BASE_COMPOSE build
