@@ -57,23 +57,22 @@ jobs:
         run: |
           docker compose -f docker/compose.yaml --env-file docker/default.env up -d
 
-      - name: Wait for OpenMRS to be healthy
+      - name: Wait for OpenMRS to be fully initialized
         env:
           SERVICE_NAME: ${{ matrix.site }}
           PIH_CONFIG: ${{ matrix.pih_config }}
         run: |
-          echo "Waiting for OpenMRS to be healthy (up to 60 minutes)..."
+          echo "Waiting for OpenMRS to fully initialize (up to 60 minutes)..."
           OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q openmrs)
           for i in $(seq 1 120); do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$OPENMRS_CONTAINER" 2>/dev/null || echo "unknown")
-            if [ "$STATUS" = "healthy" ]; then
-              echo "OpenMRS is healthy after $((i * 30)) seconds"
+            if docker logs "$OPENMRS_CONTAINER" 2>&1 | grep -q "Distribution startup complete"; then
+              echo "OpenMRS fully initialized after $((i * 30)) seconds"
               exit 0
             fi
-            echo "Attempt $i/120: status=$STATUS"
+            echo "Attempt $i/120: still initializing..."
             sleep 30
           done
-          echo "Timed out waiting for OpenMRS to become healthy after 60 minutes"
+          echo "Timed out waiting for OpenMRS to fully initialize after 60 minutes"
           exit 1
 
       - name: Stop OpenMRS
