@@ -1,0 +1,120 @@
+name: Build seeded images
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  SEED_IMAGE_PREFIX: partnersinhealth/openmrs-distro-pihsl-seed
+
+jobs:
+  build-seed:
+    name: Build seed image (${{ matrix.site }})
+    if: github.repository_owner == 'PIH'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - site: kgh-test
+            pih_config: "sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test"
+          - site: wellbody-demo
+            pih_config: "sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-demo"
+          - site: wellbody-gladi
+            pih_config: "sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-gladi"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 8
+          cache: 'maven'
+
+      - name: Extract pom version
+        run: echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: pihci
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Start stack
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: |
+          docker compose -f docker/compose.yaml --env-file docker/default.env up -d
+
+      - name: Wait for OpenMRS to be healthy
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: |
+          echo "Waiting for OpenMRS to be healthy (up to 60 minutes)..."
+          OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q openmrs)
+          for i in $(seq 1 120); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$OPENMRS_CONTAINER" 2>/dev/null || echo "unknown")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "OpenMRS is healthy after $((i * 30)) seconds"
+              exit 0
+            fi
+            echo "Attempt $i/120: status=$STATUS"
+            sleep 30
+          done
+          echo "Timed out waiting for OpenMRS to become healthy after 60 minutes"
+          exit 1
+
+      - name: Export database
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: |
+          DB_CONTAINER=$(docker compose -f docker/compose.yaml ps -q db)
+          docker exec "$DB_CONTAINER" \
+            sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" --databases openmrs' \
+            | gzip > dump.sql.gz
+          echo "dump.sql.gz size: $(du -sh dump.sql.gz | cut -f1)"
+
+      - name: Export openmrs-data volume
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: |
+          OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q openmrs)
+          DATA_VOLUME=$(docker inspect "$OPENMRS_CONTAINER" \
+            --format '{{range .Mounts}}{{if eq .Destination "/openmrs/data"}}{{.Name}}{{end}}{{end}}')
+          echo "Exporting volume: $DATA_VOLUME"
+          docker run --rm \
+            -v "${DATA_VOLUME}:/data" \
+            alpine sh -c 'cd /data && tar czf - .' > data.tar.gz
+          echo "data.tar.gz size: $(du -sh data.tar.gz | cut -f1)"
+
+      - name: Stop stack
+        if: always()
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: docker compose -f docker/compose.yaml --env-file docker/default.env down -v
+
+      - name: Build seed image
+        run: |
+          mkdir -p .seed-build-context
+          cp dump.sql.gz data.tar.gz docker/seed-entrypoint.sh .seed-build-context/
+          docker build \
+            -f docker/Dockerfile.seed \
+            -t ${{ env.SEED_IMAGE_PREFIX }}-${{ matrix.site }}:${{ env.VERSION }} \
+            -t ${{ env.SEED_IMAGE_PREFIX }}-${{ matrix.site }}:latest \
+            .seed-build-context/
+
+      - name: Push seed image
+        run: |
+          docker push ${{ env.SEED_IMAGE_PREFIX }}-${{ matrix.site }}:${{ env.VERSION }}
+          docker push ${{ env.SEED_IMAGE_PREFIX }}-${{ matrix.site }}:latest
+
+      - name: Clean up
+        if: always()
+        run: rm -rf dump.sql.gz data.tar.gz .seed-build-context
