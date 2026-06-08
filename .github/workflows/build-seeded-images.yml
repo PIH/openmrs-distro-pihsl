@@ -8,11 +8,16 @@ on:
 env:
   SEED_IMAGE_PREFIX: partnersinhealth/openmrs-distro-pihsl-seed
 
+concurrency:
+  group: build-seeded-images-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-seed:
     name: Build seed image (${{ matrix.site }})
     if: github.repository_owner == 'PIH'
     runs-on: ubuntu-latest
+    timeout-minutes: 80
     strategy:
       matrix:
         include:
@@ -46,6 +51,7 @@ jobs:
         env:
           SERVICE_NAME: ${{ matrix.site }}
           PIH_CONFIG: ${{ matrix.pih_config }}
+          OPENMRS_IMAGE_TAG: ${{ env.VERSION }}
         run: |
           docker compose -f docker/compose.yaml --env-file docker/default.env up -d
 
@@ -67,6 +73,12 @@ jobs:
           done
           echo "Timed out waiting for OpenMRS to become healthy after 60 minutes"
           exit 1
+
+      - name: Stop OpenMRS
+        env:
+          SERVICE_NAME: ${{ matrix.site }}
+          PIH_CONFIG: ${{ matrix.pih_config }}
+        run: docker compose -f docker/compose.yaml stop openmrs
 
       - name: Export database
         env:
