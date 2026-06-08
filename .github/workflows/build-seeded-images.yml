@@ -98,7 +98,7 @@ jobs:
           SERVICE_NAME: ${{ matrix.site }}
           PIH_CONFIG: ${{ matrix.pih_config }}
         run: |
-          OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q openmrs)
+          OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q --all openmrs)
           DATA_VOLUME=$(docker inspect "$OPENMRS_CONTAINER" \
             --format '{{range .Mounts}}{{if eq .Destination "/openmrs/data"}}{{.Name}}{{end}}{{end}}')
           echo "Exporting volume: $DATA_VOLUME"
