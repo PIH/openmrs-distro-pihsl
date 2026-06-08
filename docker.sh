@@ -3,16 +3,32 @@ set -euo pipefail
 
 SITE=${1:-}
 COMMAND=${2:-}
+shift 2 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker/compose.yaml"
+SEED_COMPOSE_FILE="$SCRIPT_DIR/docker/compose.seed.yaml"
 ENV_FILE="$SCRIPT_DIR/docker/default.env"
 
+BUILD=false
+FRESH=false
+for arg in "$@"; do
+    case "$arg" in
+        --build) BUILD=true ;;
+        --fresh) FRESH=true ;;
+        *) echo "Unknown option: '$arg'"; echo ""; usage ;;
+    esac
+done
+
 usage() {
-    echo "Usage: $0 <site> <command>"
+    echo "Usage: $0 <site> <command> [options]"
     echo ""
     echo "Sites:    kgh-test | wellbody-demo | wellbody-gladi"
     echo "Commands: start | stop | update | build | logs | destroy"
+    echo ""
+    echo "Options:"
+    echo "  --build   Build the distribution from source before starting"
+    echo "  --fresh   Initialize OpenMRS from scratch instead of using a pre-seeded image"
     exit 1
 }
 
@@ -27,24 +43,43 @@ esac
 
 export PIH_CONFIG
 export SERVICE_NAME="$SITE"
+export SITE
 
-COMPOSE="docker compose -f $COMPOSE_FILE --env-file $ENV_FILE"
+BASE_COMPOSE="docker compose -f $COMPOSE_FILE --env-file $ENV_FILE"
+SEED_COMPOSE="docker compose -f $SEED_COMPOSE_FILE --env-file $ENV_FILE"
+
+_build() {
+    cd "$SCRIPT_DIR" && mvn clean package -U
+    if ! $FRESH; then
+        # compose.seed.yaml has no build context; build the image explicitly
+        $BASE_COMPOSE build
+    fi
+}
+
+_up() {
+    if $FRESH; then
+        $BASE_COMPOSE up -d
+    else
+        $SEED_COMPOSE up -d
+    fi
+}
 
 case "$COMMAND" in
     start)
-        cd "$SCRIPT_DIR" && mvn clean package -U
-        $COMPOSE up -d
+        if $BUILD; then _build; fi
+        _up
         ;;
     update)
-        cd "$SCRIPT_DIR" && mvn clean package -U
-        $COMPOSE down && $COMPOSE up -d
+        if $BUILD; then _build; fi
+        if $FRESH; then $BASE_COMPOSE down; else $SEED_COMPOSE down; fi
+        _up
         ;;
     build)
         cd "$SCRIPT_DIR" && mvn clean package -U
-        $COMPOSE build
+        $BASE_COMPOSE build
         ;;
-    stop)    $COMPOSE down ;;
-    logs)    $COMPOSE logs -f ;;
-    destroy) $COMPOSE down -v ;;
+    stop)    $SEED_COMPOSE down ;;
+    logs)    $SEED_COMPOSE logs -f ;;
+    destroy) $SEED_COMPOSE down -v ;;
     *) echo "Unknown command: '$COMMAND'"; echo ""; usage ;;
 esac

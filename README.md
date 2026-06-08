@@ -30,24 +30,41 @@ Component versions are defined in `pom.xml` and resolved into `openmrs-distro.pr
 
 ### Docker (`docker.sh`)
 
-Use `docker.sh` to run a site locally using Docker Compose. The script builds the distribution, then manages the Docker stack.
+Use `docker.sh` to run a site locally using Docker Compose.
 
 ```
-./docker.sh <site> <command>
+./docker.sh <site> <command> [options]
 ```
 
 | Command | Description |
 |---|---|
-| `start` | Build the distro and start the stack |
-| `update` | Rebuild and restart the stack |
-| `build` | Build the distro and Docker image without starting |
+| `start` | Start the stack |
+| `update` | Restart the stack, pulling the latest image |
+| `build` | Build the distribution from source and create a local Docker image |
 | `stop` | Stop the running stack |
 | `logs` | Tail container logs |
 | `destroy` | Stop the stack and delete all volumes (wipes database) |
 
-**Example:**
+| Option | Description |
+|---|---|
+| `--build` | Build the distribution from source before starting |
+| `--fresh` | Initialize OpenMRS from scratch instead of using a pre-seeded image |
+
+By default, `start` and `update` use a [pre-seeded image](#seeded-environments-composeseedyaml) for fast startup (~5 minutes). Pass `--fresh` to initialize from scratch (~30 minutes).
+
+**Example — start with pre-seeded image (default):**
 ```bash
 ./docker.sh kgh-test start
+```
+
+**Example — build from source and start:**
+```bash
+./docker.sh kgh-test start --build
+```
+
+**Example — initialize from scratch:**
+```bash
+./docker.sh kgh-test start --fresh
 ```
 
 The stack runs OpenMRS on port 8080 by default. Settings are in `docker/default.env` and can be overridden with shell environment variables.
@@ -122,19 +139,9 @@ DB_CONTAINER=mysql56 DB_PORT=3306 ./sdk.sh kgh-test create
 
 ### Seeded Environments (`compose.seed.yaml`)
 
-Nightly CI publishes pre-initialized seed images per site. Using `docker/compose.seed.yaml` skips the ~30-minute first-run initialization and starts a working environment in under 5 minutes.
+Nightly CI publishes pre-initialized seed images per site. `docker.sh start` uses these by default, skipping the ~30-minute first-run initialization so the stack is ready in under 5 minutes.
 
-**Start a seeded environment:**
-
-```bash
-SITE=kgh-test \
-  PIH_CONFIG=sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test \
-  docker compose -f docker/compose.seed.yaml --env-file docker/default.env up -d
-```
-
-OpenMRS will be available at `http://localhost:8080/openmrs` once healthy.
-
-Per-site values:
+For programmatic or downstream use, invoke `docker/compose.seed.yaml` directly. `SITE` is the only required variable; `PIH_CONFIG` is resolved automatically by `docker.sh` but must be set explicitly when using compose directly.
 
 | Site | `SITE` | `PIH_CONFIG` |
 |---|---|---|
@@ -142,23 +149,13 @@ Per-site values:
 | Wellbody demo | `wellbody-demo` | `sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-demo` |
 | Wellbody GLADI | `wellbody-gladi` | `sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-gladi` |
 
-**Stop and remove all data:**
-
 ```bash
-SITE=kgh-test docker compose -f docker/compose.seed.yaml --env-file docker/default.env down -v
-```
-
-Omit `-v` to preserve volumes across restarts. A subsequent `up -d` will resume from the existing volumes rather than re-seeding.
-
-**Pin to a specific version:**
-
-```bash
-SEED_IMAGE_TAG=1.0.0 SITE=kgh-test \
+SITE=kgh-test \
   PIH_CONFIG=sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test \
   docker compose -f docker/compose.seed.yaml --env-file docker/default.env up -d
 ```
 
-All other `docker/default.env` overrides (ports, memory limits, passwords) work the same as with `compose.yaml`.
+To pin to a specific version, set `SEED_IMAGE_TAG=1.0.0`. To remove all volumes for a clean re-seed, pass `-v` to `down`.
 
 ## CI and Publishing
 
