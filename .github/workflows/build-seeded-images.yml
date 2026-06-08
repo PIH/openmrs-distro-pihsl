@@ -64,14 +64,17 @@ jobs:
         run: |
           echo "Waiting for OpenMRS to fully initialize (up to 60 minutes)..."
           OPENMRS_CONTAINER=$(docker compose -f docker/compose.yaml ps -q openmrs)
+          docker logs -f "$OPENMRS_CONTAINER" 2>&1 &
+          LOGS_PID=$!
           for i in $(seq 1 120); do
             if docker logs "$OPENMRS_CONTAINER" 2>&1 | grep -q "Distribution startup complete"; then
               echo "OpenMRS fully initialized after $((i * 30)) seconds"
+              kill $LOGS_PID 2>/dev/null || true
               exit 0
             fi
-            echo "Attempt $i/120: still initializing..."
             sleep 30
           done
+          kill $LOGS_PID 2>/dev/null || true
           echo "Timed out waiting for OpenMRS to fully initialize after 60 minutes"
           exit 1
 
