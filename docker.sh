@@ -48,7 +48,7 @@ export SITE
 BASE_COMPOSE="docker compose -f $COMPOSE_FILE --env-file $ENV_FILE"
 SEED_COMPOSE="docker compose -f $SEED_COMPOSE_FILE --env-file $ENV_FILE"
 
-_build() {
+build_image() {
     cd "$SCRIPT_DIR" && mvn clean package -U
     if ! $FRESH; then
         # compose.seed.yaml has no build context; build the image explicitly
@@ -56,7 +56,7 @@ _build() {
     fi
 }
 
-_up() {
+start_stack() {
     if $FRESH; then
         $BASE_COMPOSE up -d
     else
@@ -66,13 +66,13 @@ _up() {
 
 case "$COMMAND" in
     start)
-        if $BUILD; then _build; fi
-        _up
+        if $BUILD; then build_image; fi
+        start_stack
         ;;
     update)
-        if $BUILD; then _build; fi
+        if $BUILD; then build_image; fi
         if $FRESH; then $BASE_COMPOSE down; else $SEED_COMPOSE down; fi
-        _up
+        start_stack
         ;;
     build)
         cd "$SCRIPT_DIR" && mvn clean package -U
