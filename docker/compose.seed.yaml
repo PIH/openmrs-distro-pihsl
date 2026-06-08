@@ -1,3 +1,16 @@
+name: ${SERVICE_NAME:-pihsl}
+
+# Required env vars:
+#   SITE        - site config name (kgh-test | wellbody-demo | wellbody-gladi)
+#   PIH_CONFIG  - comma-separated PIH config list for the chosen site
+# Optional:
+#   SEED_IMAGE_TAG - seed image tag to use (default: latest)
+#
+# Usage: SITE=kgh-test PIH_CONFIG=sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test \
+#          docker compose -f compose.seed.yaml --env-file default.env up -d
+#
+# For a clean re-seed, use: docker compose down -v (removes all volumes)
+
 services:
   seed:
     image: partnersinhealth/openmrs-distro-pihsl-seed-${SITE}:${SEED_IMAGE_TAG:-latest}
@@ -35,6 +48,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-2g}
 
   openmrs:
     image: partnersinhealth/openmrs-distro-pihsl:${OPENMRS_IMAGE_TAG:-latest}
