@@ -61,21 +61,21 @@ You only need to do this once. The `openmrs-distro-pihsl` folder now contains ev
 
 In the Ubuntu terminal (make sure you are inside the `openmrs-distro-pihsl` folder), run the command for the site you want:
 
-| Site | Command |
-|---|---|
-| KGH test | `./docker.sh kgh-test start` |
-| Wellbody demo | `./docker.sh wellbody-demo start` |
-| Wellbody GLADI | `./docker.sh wellbody-gladi start` |
+| Site           | Command |
+|----------------|---|
+| KGH Test       | `./docker.sh kgh-test start` |
+| Wellbody Demo  | `./docker.sh wellbody-demo start` |
+| Wellbody Gladi | `./docker.sh wellbody-gladi start` |
 
 The first time you start a site, Docker will download the pre-initialized image from the internet. This can take 10–20 minutes depending on your connection. Subsequent starts will be much faster.
 
 Once the download is complete, run the matching wait command to be notified when OpenMRS is fully ready:
 
-| Site | Command |
-|---|---|
-| KGH test | `./docker.sh kgh-test wait` |
-| Wellbody demo | `./docker.sh wellbody-demo wait` |
-| Wellbody GLADI | `./docker.sh wellbody-gladi wait` |
+| Site           | Command |
+|----------------|---|
+| KGH Test       | `./docker.sh kgh-test wait` |
+| Wellbody Demo  | `./docker.sh wellbody-demo wait` |
+| Wellbody Gladi | `./docker.sh wellbody-gladi wait` |
 
 When you see **OpenMRS is ready**, open a browser and go to:
 
