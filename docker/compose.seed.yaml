@@ -1,0 +1,93 @@
+name: ${SERVICE_NAME:-pihsl}
+
+# Required env vars:
+#   SITE        - site config name (kgh-test | wellbody-demo | wellbody-gladi)
+#   PIH_CONFIG  - comma-separated PIH config list for the chosen site
+# Optional:
+#   SEED_IMAGE_TAG - seed image tag to use (default: latest)
+#
+# Usage: SITE=kgh-test PIH_CONFIG=sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test \
+#          docker compose -f compose.seed.yaml --env-file default.env up -d
+#
+# For a clean re-seed, use: docker compose down -v (removes all volumes)
+
+services:
+  seed:
+    image: partnersinhealth/openmrs-distro-pihsl-seed-${SITE}:${SEED_IMAGE_TAG:-latest}
+    volumes:
+      - openmrs-data:/target/data
+      - db-init:/target/db-init
+
+  db:
+    image: ${DB_IMAGE:-mysql:5.6}
+    command: >
+      mysqld
+      --character-set-server=utf8
+      --collation-server=utf8_general_ci
+      --binlog_format=ROW
+      --max_binlog_size=100M
+      --server-id=1
+      --max_allowed_packet=${DB_MAX_ALLOWED_PACKET:-1G}
+      --innodb-buffer-pool-size=${DB_INNODB_BUFFER_POOL_SIZE:-2G}
+      --net_write_timeout=3600
+      --net_read_timeout=3600
+    environment:
+      MYSQL_DATABASE: openmrs
+      MYSQL_USER: ${OMRS_DB_USER:-openmrs}
+      MYSQL_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-openmrs}
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    volumes:
+      - db-data:/var/lib/mysql
+      - db-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${DB_MEMORY_LIMIT:-2g}
+
+  openmrs:
+    image: partnersinhealth/openmrs-distro-pihsl:${OPENMRS_IMAGE_TAG:-latest}
+    depends_on:
+      db:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - ${TOMCAT_HTTP_PORT:-8080}:8080
+    environment:
+      OMRS_CONFIG_MODULE_WEB_ADMIN: "true"
+      OMRS_CONFIG_AUTO_UPDATE_DATABASE: "false"
+      OMRS_CONFIG_CREATE_TABLES: "false"
+      OMRS_CONFIG_CONNECTION_SERVER: db
+      OMRS_CONFIG_CONNECTION_DATABASE: openmrs
+      OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
+      OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      OMRS_EXTRA_PIH_CONFIG: ${PIH_CONFIG:-"sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test"}
+      OMRS_JAVA_MEMORY_OPTS: ${OMRS_JAVA_MEMORY_OPTS:--Xms512m -Xmx2g -XX:NewSize=128m}
+      OMRS_EXTRA_DBEVENT__ENABLED: ${DBEVENT_ENABLED:-false}
+      OMRS_EXTRA_ACTIVITYLOG__ENABLED: ${ACTIVITYLOG_ENABLED:-false}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+    volumes:
+      - openmrs-data:/openmrs/data/
+    deploy:
+      resources:
+        limits:
+          memory: ${OPENMRS_MEMORY_LIMIT:-4g}
+
+volumes:
+  db-data:
+  db-init:
+  openmrs-data:
