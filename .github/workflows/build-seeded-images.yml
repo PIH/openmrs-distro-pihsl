@@ -1,8 +1,6 @@
 name: Build seeded images
 
 on:
-  push:
-    branches: [TASKS-547-2]
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
