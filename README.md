@@ -36,13 +36,31 @@ This section walks through how to run a local OpenMRS instance on a Windows mach
 
 Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/). It will ask to enable WSL2 during installation — allow it. WSL2 is a lightweight Linux environment built into Windows that the scripts require.
 
-After installation, start Docker Desktop. Wait until the whale icon in the system tray is steady (not animated), which means Docker is running.
+After installation, restart your computer if prompted to do so.
 
-**Step 2 — Open a Linux terminal**
+**Step 2 — Configure Docker Desktop**
 
-Open the Start menu, search for **Ubuntu**, and open it. The first time you open it, it will spend a minute setting itself up and ask you to choose a username and password — these are just for this Linux environment and don't need to match your Windows login.
+Start Docker Desktop. On first startup it will prompt you to create and account and sign in, which you can choose to do or choose to skip.  You don't need to create an account or to sign in for this to work.
 
-**Step 3 — Install Git and download the scripts**
+Wait until the whale icon in the system tray is steady (not animated), which means Docker is running.
+
+Then open **Settings → Resources → WSL Integration**, enable the toggle next to **Ubuntu**, and click **Apply & restart**.
+
+**Step 3 — Open an Ubuntu terminal**
+
+Open the Start menu, search for **Ubuntu**, and open it. The first time you open it, it will spend a minute setting itself up and ask you to choose a username and password — these are just for this Linux environment and don't need to match your Windows login (though they can if that is easier to remember).
+
+**Step 4 — Allow your account to run Docker without administrator privileges**
+
+In the Ubuntu terminal, run:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Then close the Ubuntu terminal and reopen it from the Start menu before continuing.
+
+**Step 5 — Install Git and download the scripts**
 
 In the Ubuntu terminal, paste the following commands one at a time and press Enter after each:
 
@@ -116,6 +134,7 @@ Run this once to make the script executable:
 ```bash
 chmod +x docker.sh
 ```
+
 
 ## Developer Guide
 
