@@ -20,6 +20,103 @@ Component versions are defined in `pom.xml` and resolved into `openmrs-distro.pr
 | `wellbody-demo` | `sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-demo` |
 | `wellbody-gladi` | `sierraLeone,sierraLeone-wellbody,sierraLeone-wellbody-gladi` |
 
+## Running on Windows
+
+This section walks through how to run a local OpenMRS instance on a Windows machine — no programming experience required.
+
+### What you need
+
+- Windows 10 (version 2004 or later) or Windows 11
+- At least 8 GB RAM (16 GB recommended — OpenMRS uses a lot of memory)
+- A reliable internet connection for the initial download
+
+### One-time setup
+
+**Step 1 — Install Docker Desktop**
+
+Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/). It will ask to enable WSL2 during installation — allow it. WSL2 is a lightweight Linux environment built into Windows that the scripts require.
+
+After installation, start Docker Desktop. Wait until the whale icon in the system tray is steady (not animated), which means Docker is running.
+
+**Step 2 — Open a Linux terminal**
+
+Open the Start menu, search for **Ubuntu**, and open it. The first time you open it, it will spend a minute setting itself up and ask you to choose a username and password — these are just for this Linux environment and don't need to match your Windows login.
+
+**Step 3 — Install Git and download the scripts**
+
+In the Ubuntu terminal, paste the following commands one at a time and press Enter after each:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+```
+
+```bash
+git clone https://github.com/PIH/openmrs-distro-pihsl.git
+cd openmrs-distro-pihsl
+```
+
+You only need to do this once. The `openmrs-distro-pihsl` folder now contains everything needed to run the environment.
+
+### Starting an environment
+
+In the Ubuntu terminal (make sure you are inside the `openmrs-distro-pihsl` folder), run the command for the site you want:
+
+| Site | Command |
+|---|---|
+| KGH test | `./docker.sh kgh-test start` |
+| Wellbody demo | `./docker.sh wellbody-demo start` |
+| Wellbody GLADI | `./docker.sh wellbody-gladi start` |
+
+The first time you start a site, Docker will download the pre-initialized image from the internet. This can take 10–20 minutes depending on your connection. Subsequent starts will be much faster.
+
+Once the download is complete, run the matching wait command to be notified when OpenMRS is fully ready:
+
+| Site | Command |
+|---|---|
+| KGH test | `./docker.sh kgh-test wait` |
+| Wellbody demo | `./docker.sh wellbody-demo wait` |
+| Wellbody GLADI | `./docker.sh wellbody-gladi wait` |
+
+When you see **OpenMRS is ready**, open a browser and go to:
+
+**http://localhost:8080/openmrs**
+
+### Stopping
+
+When you are done, stop the environment to free up memory. Your data is preserved and will be there when you start again.
+
+```bash
+./docker.sh kgh-test stop
+```
+
+To wipe all data and start completely fresh next time:
+
+```bash
+./docker.sh kgh-test destroy
+```
+
+### Keeping the scripts up to date
+
+Periodically run the following in the Ubuntu terminal from inside the `openmrs-distro-pihsl` folder to pick up any script updates:
+
+```bash
+git pull
+```
+
+### Troubleshooting
+
+**"Docker is not running" or similar error**
+Make sure Docker Desktop is open and the whale icon in the system tray is steady before running any commands.
+
+**OpenMRS runs very slowly or runs out of memory**
+Docker Desktop limits how much memory it can use by default. Open Docker Desktop, go to **Settings → Resources → Memory**, and increase it to at least 6 GB. Click **Apply & restart**.
+
+**"Permission denied" when running `./docker.sh`**
+Run this once to make the script executable:
+```bash
+chmod +x docker.sh
+```
+
 ## Developer Guide
 
 ### Prerequisites
