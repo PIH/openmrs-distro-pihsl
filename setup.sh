@@ -1,8 +1,13 @@
-echo -e "Setting up docker...\n"
+echo -e "Setting up environment...\n"
+
+# Install required tools
+sudo apt-get update && sudo apt-get install -y git ca-certificates
+
+# Clone the repo
+git clone https://github.com/PIH/openmrs-distro-pihsl.git
+cd openmrs-distro-pihsl
 
 # Add Docker's official GPG key:
-sudo apt update
-sudo apt install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -17,10 +22,11 @@ Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 
+# Install docker from newly added repo
 sudo apt update
-
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Add user to the docker group
 sudo usermod -aG docker $USER
 
 echo -e "\nDone! Please close this terminal window and start a new session."

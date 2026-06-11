@@ -42,25 +42,12 @@ wsl --install
 
 Reboot your computer.
 
-**Step 2 — Install Git and download the scripts**
+**Step 2 — Download the setup script and run it**
 
-Open the Ubuntu terminal from your start menu and paste the following commands one at a time and press Enter after each:
-
-```bash
-sudo apt-get update && sudo apt-get install -y git
-```
+Open the Ubuntu terminal from your start menu and paste the following command:
 
 ```bash
-git clone https://github.com/PIH/openmrs-distro-pihsl.git
-cd openmrs-distro-pihsl
-```
-
-**Step 3 — Install docker
-
-Run the setup script included in the repo to install docker. This will ask for your ubuntu password.
-
-```bash
-./setup.sh
+curl https://raw.githubusercontent.com/PIH/openmrs-distro-pihsl/refs/heads/main/setup.sh | sudo bash
 ```
 
 When the process is complete, close the Ubuntu terminal window and relaunch it from the Start Menu.
