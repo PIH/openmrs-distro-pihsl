@@ -32,47 +32,25 @@ This section walks through how to run a local OpenMRS instance on a Windows mach
 
 ### One-time setup
 
-**Step 1 — Install Docker Desktop**
+**Step 1 — Install Windows Subsystem for Linux**
 
-Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/). It will ask to enable WSL2 during installation — allow it. WSL2 is a lightweight Linux environment built into Windows that the scripts require.
+Open PowerShell in administrator mode by right-clicking and selecting "Run as administrator" and enter the following command:
 
-After installation, restart your computer if prompted to do so.
-
-**Step 2 — Configure Docker Desktop**
-
-Start Docker Desktop. On first startup it will prompt you to create and account and sign in, which you can choose to do or choose to skip.  You don't need to create an account or to sign in for this to work.
-
-Wait until the whale icon in the system tray is steady (not animated), which means Docker is running.
-
-Then open **Settings → Resources → WSL Integration**, enable the toggle next to **Ubuntu**, and click **Apply & restart**.
-
-**Step 3 — Open an Ubuntu terminal**
-
-Open the Start menu, search for **Ubuntu**, and open it. The first time you open it, it will spend a minute setting itself up and ask you to choose a username and password — these are just for this Linux environment and don't need to match your Windows login (though they can if that is easier to remember).
-
-**Step 4 — Allow your account to run Docker without administrator privileges**
-
-In the Ubuntu terminal, run:
-
-```bash
-sudo usermod -aG docker $USER
+```powershell
+wsl --install
 ```
 
-Then close the Ubuntu terminal and reopen it from the Start menu before continuing.
+Reboot your computer.
 
-**Step 5 — Install Git and download the scripts**
+**Step 2 — Download the setup script and run it**
 
-In the Ubuntu terminal, paste the following commands one at a time and press Enter after each:
-
-```bash
-sudo apt-get update && sudo apt-get install -y git
-```
+Open the Ubuntu terminal from your start menu and paste the following command:
 
 ```bash
-git clone https://github.com/PIH/openmrs-distro-pihsl.git
-cd openmrs-distro-pihsl
+curl https://raw.githubusercontent.com/PIH/openmrs-distro-pihsl/refs/heads/main/setup.sh | sudo bash
 ```
 
+When the process is complete, close the Ubuntu terminal window and relaunch it from the Start Menu.
 You only need to do this once. The `openmrs-distro-pihsl` folder now contains everything needed to run the environment.
 
 ### Starting an environment
