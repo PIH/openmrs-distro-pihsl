@@ -52,7 +52,6 @@ services:
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
       OMRS_EXTRA_PIH_CONFIG: ${PIH_CONFIG:-"sierraLeone,sierraLeone-kgh,sierraLeone-kgh-test"}
       OMRS_JAVA_MEMORY_OPTS: ${OMRS_JAVA_MEMORY_OPTS:--Xms512m -Xmx2g -XX:NewSize=128m}
-      OMRS_EXTRA_DBEVENT__ENABLED: ${DBEVENT_ENABLED:-false}
       OMRS_EXTRA_ACTIVITYLOG__ENABLED: ${ACTIVITYLOG_ENABLED:-true}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
